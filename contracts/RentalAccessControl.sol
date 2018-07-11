@@ -1,10 +1,15 @@
 pragma solidity ^0.4.17;
-
+import "./math/SafeMath.sol";
+/**
+*@author Tanmay Bhattacharya
+ */
 /**
  * @title LicenseAccessControl
  * @notice This contract defines organizational roles and permissions.
  */
 contract RentalAccessControl {
+  using SafeMath for uint;
+  using SafeMath for uint256;
   /**
    * @notice ContractUpgrade is the event that will be emitted if we set a new contract address
    */

@@ -1,23 +1,23 @@
 pragma solidity ^0.4.17;
 
-import "./Car.sol";
+import "./CarBase.sol";
 import "./interfaces/ERC721.sol";
 import "./interfaces/ERC721Metadata.sol";
 import "./interfaces/ERC721Enumerable.sol";
 import "./interfaces/ERC165.sol";
 import "./strings/Strings.sol";
-import "./math/Safemath.sol";
-
 import "./interfaces/ERC721TokenReceiver.sol";
-
-contract carOwnership is Car, ERC721, ERC165, ERC721Metadata, ERC721Enumerable {
+/**
+*@author Tanmay Bhattacharya
+ */
+contract CarOwnership is CarBase, ERC721, ERC165, ERC721Metadata, ERC721Enumerable {
   using SafeMath for uint256;
 
   // Total amount of tokens
-  uint256 private totalTokens;
+  //uint256 private totalTokens;
 
   // Mapping from token ID to owner
-  mapping (uint256 => address) private tokenOwner;
+  //mapping (uint256 => address) private carIdToOwner;
 
   // Mapping from token ID to approved address
   mapping (uint256 => address) private tokenApprovals;
@@ -26,7 +26,7 @@ contract carOwnership is Car, ERC721, ERC165, ERC721Metadata, ERC721Enumerable {
   mapping (address => mapping (address => bool)) private operatorApprovals;
 
   // Mapping from owner to list of owned token IDs
-  mapping (address => uint256[]) private ownedTokens;
+  //mapping (address => uint256[]) private ownerListofCars;
 
   // Mapping from token ID to index of the owner tokens list
   mapping(uint256 => uint256) private ownedTokensIndex;
@@ -34,7 +34,7 @@ contract carOwnership is Car, ERC721, ERC165, ERC721Metadata, ERC721Enumerable {
   /*** Constants ***/
   // Configure these for your own deployment
   string public constant NAME = "CareRental";
-  string public constant SYMBOL = "DOTTA";
+  string public constant SYMBOL = "CR";
   string public tokenMetadataBaseURI = "https://api.dottabot.com/";
 
   /**
@@ -55,14 +55,14 @@ contract carOwnership is Car, ERC721, ERC165, ERC721Metadata, ERC721Enumerable {
     return true;
   }
 
-  function tokenURI(uint256 _tokenId)
+  function tokenURI(uint256 _CarId)
     external
     view
     returns (string infoUrl)
   {
     return Strings.strConcat(
       tokenMetadataBaseURI,
-      Strings.uint2str(_tokenId));
+      Strings.uint2str(_CarId));
   }
 
   function supportsInterface(
@@ -82,10 +82,10 @@ contract carOwnership is Car, ERC721, ERC165, ERC721Metadata, ERC721Enumerable {
 
   /**
   * @notice Guarantees msg.sender is owner of the given token
-  * @param _tokenId uint256 ID of the token to validate its ownership belongs to msg.sender
+  * @param _CarId uint256 ID of the token to validate its ownership belongs to msg.sender
   */
-  modifier onlyOwnerOf(uint256 _tokenId) {
-    require(ownerOf(_tokenId) == msg.sender);
+  modifier onlyOwnerOf(uint256 _CarId) {
+    require(ownerOf(_CarId) == msg.sender);
     _;
   }
 
@@ -94,7 +94,7 @@ contract carOwnership is Car, ERC721, ERC165, ERC721Metadata, ERC721Enumerable {
   * @return uint256 representing the total amount of tokens
   */
   function totalSupply() public view returns (uint256) {
-    return totalTokens;
+    return totalCarPool.length;
   }
 
   /**
@@ -118,7 +118,7 @@ contract carOwnership is Car, ERC721, ERC165, ERC721Metadata, ERC721Enumerable {
   */
   function balanceOf(address _owner) public view returns (uint256) {
     require(_owner != address(0));
-    return ownedTokens[_owner].length;
+    return ownerListofCars[_owner].length;
   }
 
   /**
@@ -127,7 +127,7 @@ contract carOwnership is Car, ERC721, ERC165, ERC721Metadata, ERC721Enumerable {
   * @return uint256[] representing the list of tokens owned by the passed address
   */
   function tokensOf(address _owner) public view returns (uint256[]) {
-    return ownedTokens[_owner];
+    return ownerListofCars[_owner];
   }
 
   /**
@@ -141,53 +141,53 @@ contract carOwnership is Car, ERC721, ERC165, ERC721Metadata, ERC721Enumerable {
   function tokenOfOwnerByIndex(address _owner, uint256 _index)
     external
     view
-    returns (uint256 _tokenId)
+    returns (uint256 _CarId)
   {
     require(_index < balanceOf(_owner));
-    return ownedTokens[_owner][_index];
+    return ownerListofCars[_owner][_index];
   }
 
   /**
   * @notice Gets the owner of the specified token ID
-  * @param _tokenId uint256 ID of the token to query the owner of
+  * @param _CarId uint256 ID of the token to query the owner of
   * @return owner address currently marked as the owner of the given token ID
   */
-  function ownerOf(uint256 _tokenId) public view returns (address) {
-    address owner = tokenOwner[_tokenId];
+  function ownerOf(uint256 _CarId) public view returns (address) {
+    address owner = carIdToOwner[_CarId];
     require(owner != address(0));
     return owner;
   }
 
   /**
    * @notice Gets the approved address to take ownership of a given token ID
-   * @param _tokenId uint256 ID of the token to query the approval of
+   * @param _CarId uint256 ID of the token to query the approval of
    * @return address currently approved to take ownership of the given token ID
    */
-  function getApproved(uint256 _tokenId) public view returns (address) {
-    return tokenApprovals[_tokenId];
+  function getApproved(uint256 _CarId) public view returns (address) {
+    return tokenApprovals[_CarId];
   }
 
   /**
    * @notice Tells whether the msg.sender is approved to transfer the given token ID or not
    * Checks both for specific approval and operator approval
-   * @param _tokenId uint256 ID of the token to query the approval of
+   * @param _CarId uint256 ID of the token to query the approval of
    * @return bool whether transfer by msg.sender is approved for the given token ID or not
    */
-  function isSenderApprovedFor(uint256 _tokenId) internal view returns (bool) {
+  function isSenderApprovedFor(uint256 _CarId) internal view returns (bool) {
     return
-      ownerOf(_tokenId) == msg.sender ||
-      isSpecificallyApprovedFor(msg.sender, _tokenId) ||
-      isApprovedForAll(ownerOf(_tokenId), msg.sender);
+      ownerOf(_CarId) == msg.sender ||
+      isSpecificallyApprovedFor(msg.sender, _CarId) ||
+      isApprovedForAll(ownerOf(_CarId), msg.sender);
   }
 
   /**
    * @notice Tells whether the msg.sender is approved for the given token ID or not
    * @param _asker address of asking for approval
-   * @param _tokenId uint256 ID of the token to query the approval of
+   * @param _CarId uint256 ID of the token to query the approval of
    * @return bool whether the msg.sender is approved for the given token ID or not
    */
-  function isSpecificallyApprovedFor(address _asker, uint256 _tokenId) internal view returns (bool) {
-    return getApproved(_tokenId) == _asker;
+  function isSpecificallyApprovedFor(address _asker, uint256 _CarId) internal view returns (bool) {
+    return getApproved(_CarId) == _asker;
   }
 
   /**
@@ -204,29 +204,29 @@ contract carOwnership is Car, ERC721, ERC165, ERC721Metadata, ERC721Enumerable {
   /**
   * @notice Transfers the ownership of a given token ID to another address
   * @param _to address to receive the ownership of the given token ID
-  * @param _tokenId uint256 ID of the token to be transferred
+  * @param _CarId uint256 ID of the token to be transferred
   */
-  function transfer(address _to, uint256 _tokenId)
+  function transfer(address _to, uint256 _CarId)
     external
-    onlyOwnerOf(_tokenId)
+    onlyOwnerOf(_CarId)
   {
-    _clearApprovalAndTransfer(msg.sender, _to, _tokenId);
+    _clearApprovalAndTransfer(msg.sender, _to, _CarId);
   }
 
   /**
   * @notice Approves another address to claim for the ownership of the given token ID
   * @param _to address to be approved for the given token ID
-  * @param _tokenId uint256 ID of the token to be approved
+  * @param _CarId uint256 ID of the token to be approved
   */
-  function approve(address _to, uint256 _tokenId)
-    external
-    onlyOwnerOf(_tokenId)
+  function approve(address _to, uint256 _CarId)
+    external ///change this
+    onlyOwnerOf(_CarId)
   {
-    address owner = ownerOf(_tokenId);
+    address owner = ownerOf(_CarId);
     require(_to != owner);
-    if (getApproved(_tokenId) != 0 || _to != 0) {
-      tokenApprovals[_tokenId] = _to;
-      Approval(owner, _to, _tokenId);
+    if (getApproved(_CarId) != 0 || _to != 0) {
+      tokenApprovals[_CarId] = _to;
+      Approval(owner, _to, _CarId);
     }
   }
 
@@ -276,14 +276,14 @@ contract carOwnership is Car, ERC721, ERC165, ERC721Metadata, ERC721Enumerable {
 
   /**
   * @notice Claims the ownership of a given token ID
-  * @param _tokenId uint256 ID of the token being claimed by the msg.sender
+  * @param _CarId uint256 ID of the token being claimed by the msg.sender
   */
-  function takeOwnership(uint256 _tokenId)
+  function takeOwnership(uint256 _CarId)
    external
    
   {
-    require(isSenderApprovedFor(_tokenId));
-    _clearApprovalAndTransfer(ownerOf(_tokenId), msg.sender, _tokenId);
+    require(isSenderApprovedFor(_CarId));
+    _clearApprovalAndTransfer(ownerOf(_CarId), msg.sender, _CarId);
   }
 
   /**
@@ -291,19 +291,19 @@ contract carOwnership is Car, ERC721, ERC165, ERC721Metadata, ERC721Enumerable {
   *  previously been granted transfer approval by the owner.
   * @param _from The address that owns the token
   * @param _to The address that will take ownership of the token. Can be any address, including the caller
-  * @param _tokenId The ID of the token to be transferred
+  * @param _CarId The ID of the token to be transferred
   */
   function transferFrom(
     address _from,
     address _to,
-    uint256 _tokenId
+    uint256 _CarId
   )
     public
     
   {
-    require(isSenderApprovedFor(_tokenId));
-    require(ownerOf(_tokenId) == _from);
-    _clearApprovalAndTransfer(ownerOf(_tokenId), _to, _tokenId);
+    require(isSenderApprovedFor(_CarId));
+    require(ownerOf(_CarId) == _from);
+    _clearApprovalAndTransfer(ownerOf(_CarId), _to, _CarId);
   }
 
   /**
@@ -311,19 +311,19 @@ contract carOwnership is Car, ERC721, ERC165, ERC721Metadata, ERC721Enumerable {
   * @dev Throws unless `msg.sender` is the current owner, an authorized
   * operator, or the approved address for this NFT. Throws if `_from` is
   * not the current owner. Throws if `_to` is the zero address. Throws if
-  * `_tokenId` is not a valid NFT. When transfer is complete, this function
+  * `_CarId` is not a valid NFT. When transfer is complete, this function
   * checks if `_to` is a smart contract (code size > 0). If so, it calls
   * `onERC721Received` on `_to` and throws if the return value is not
   * `bytes4(keccak256("onERC721Received(address,uint256,bytes)"))`.
   * @param _from The current owner of the NFT
   * @param _to The new owner
-  * @param _tokenId The NFT to transfer
+  * @param _CarId The NFT to transfer
   * @param _data Additional data with no specified format, sent in call to `_to`
   */
   function safeTransferFrom(
     address _from,
     address _to,
-    uint256 _tokenId,
+    uint256 _CarId,
     bytes _data
   )
     public
@@ -331,10 +331,10 @@ contract carOwnership is Car, ERC721, ERC165, ERC721Metadata, ERC721Enumerable {
   {
     require(_to != address(0));
     
-    transferFrom(_from, _to, _tokenId);
+    transferFrom(_from, _to, _CarId);
     if (_isContract(_to)) {
       bytes4 tokenReceiverResponse = ERC721TokenReceiver(_to).onERC721Received.gas(50000)(
-        _from, _tokenId, _data
+        _from, _CarId, _data
       );
       require(tokenReceiverResponse == bytes4(keccak256("onERC721Received(address,uint256,bytes)")));
     }
@@ -346,95 +346,95 @@ contract carOwnership is Car, ERC721, ERC165, ERC721Metadata, ERC721Enumerable {
    *  except this function just sets data to ""
    * @param _from The current owner of the NFT
    * @param _to The new owner
-   * @param _tokenId The NFT to transfer
+   * @param _CarId The NFT to transfer
   */
   function safeTransferFrom(
     address _from,
     address _to,
-    uint256 _tokenId
+    uint256 _CarId
   )
     external
     
   {
-    safeTransferFrom(_from, _to, _tokenId, "");
+    safeTransferFrom(_from, _to, _CarId, "");
   }
 
   /**
   * @notice Mint token function
   * @param _to The address that will own the minted token
-  * @param _tokenId uint256 ID of the token to be minted by the msg.sender
+  * @param _CarId uint256 ID of the token to be minted by the msg.sender
   */
-  function _mint(address _to, uint256 _tokenId) internal {
+  function _mint(address _to, uint256 _CarId) internal {
     require(_to != address(0));
-    _addToken(_to, _tokenId);
-    Transfer(0x0, _to, _tokenId);
+    _addToken(_to, _CarId);
+    Transfer(0x0, _to, _CarId);
   }
 
   /**
   * @notice Internal function to clear current approval and transfer the ownership of a given token ID
   * @param _from address which you want to send tokens from
   * @param _to address which you want to transfer the token to
-  * @param _tokenId uint256 ID of the token to be transferred
+  * @param _CarId uint256 ID of the token to be transferred
   */
-  function _clearApprovalAndTransfer(address _from, address _to, uint256 _tokenId) internal {
+  function _clearApprovalAndTransfer(address _from, address _to, uint256 _CarId) internal {
     require(_to != address(0));
-    require(_to != ownerOf(_tokenId));
-    require(ownerOf(_tokenId) == _from);
+    require(_to != ownerOf(_CarId));
+    require(ownerOf(_CarId) == _from);
     
 
-    _clearApproval(_from, _tokenId);
-    _removeToken(_from, _tokenId);
-    _addToken(_to, _tokenId);
-    Transfer(_from, _to, _tokenId);
+    _clearApproval(_from, _CarId);
+    _removeToken(_from, _CarId);
+    _addToken(_to, _CarId);
+    Transfer(_from, _to, _CarId);
   }
 
   /**
   * @notice Internal function to clear current approval of a given token ID
-  * @param _tokenId uint256 ID of the token to be transferred
+  * @param _CarId uint256 ID of the token to be transferred
   */
-  function _clearApproval(address _owner, uint256 _tokenId) private {
-    require(ownerOf(_tokenId) == _owner);
-    tokenApprovals[_tokenId] = 0;
-    Approval(_owner, 0, _tokenId);
+  function _clearApproval(address _owner, uint256 _CarId) private {
+    require(ownerOf(_CarId) == _owner);
+    tokenApprovals[_CarId] = 0;
+    Approval(_owner, 0, _CarId);
   }
 
   /**
   * @notice Internal function to add a token ID to the list of a given address
   * @param _to address representing the new owner of the given token ID
-  * @param _tokenId uint256 ID of the token to be added to the tokens list of the given address
+  * @param _CarId uint256 ID of the token to be added to the tokens list of the given address
   */
-  function _addToken(address _to, uint256 _tokenId) private {
-    require(tokenOwner[_tokenId] == address(0));
-    tokenOwner[_tokenId] = _to;
+  function _addToken(address _to, uint256 _CarId) private {
+    require(carIdToOwner[_CarId] == address(0));
+    carIdToOwner[_CarId] = _to;
     uint256 length = balanceOf(_to);
-    ownedTokens[_to].push(_tokenId);
-    ownedTokensIndex[_tokenId] = length;
-    totalTokens = totalTokens.add(1);
+    ownerListofCars[_to].push(_CarId);
+    ownedTokensIndex[_CarId] = length;
+    //totalCarPool.length = totalCarPool.length.add(1);
   }
 
   /**
   * @notice Internal function to remove a token ID from the list of a given address
   * @param _from address representing the previous owner of the given token ID
-  * @param _tokenId uint256 ID of the token to be removed from the tokens list of the given address
+  * @param _CarId uint256 ID of the token to be removed from the tokens list of the given address
   */
-  function _removeToken(address _from, uint256 _tokenId) private {
-    require(ownerOf(_tokenId) == _from);
+  function _removeToken(address _from, uint256 _CarId) private {
+    require(ownerOf(_CarId) == _from);
 
-    uint256 tokenIndex = ownedTokensIndex[_tokenId];
+    uint256 tokenIndex = ownedTokensIndex[_CarId];
     uint256 lastTokenIndex = balanceOf(_from).sub(1);
-    uint256 lastToken = ownedTokens[_from][lastTokenIndex];
+    uint256 lastToken = ownerListofCars[_from][lastTokenIndex];
 
-    tokenOwner[_tokenId] = 0;
-    ownedTokens[_from][tokenIndex] = lastToken;
-    ownedTokens[_from][lastTokenIndex] = 0;
+    carIdToOwner[_CarId] = 0;
+    ownerListofCars[_from][tokenIndex] = lastToken;
+    ownerListofCars[_from][lastTokenIndex] = 0;
     // Note that this will handle single-element arrays. In that case, both tokenIndex and lastTokenIndex are going to
-    // be zero. Then we can make sure that we will remove _tokenId from the ownedTokens list since we are first swapping
+    // be zero. Then we can make sure that we will remove _CarId from the ownerListofCars list since we are first swapping
     // the lastToken to the first position, and then dropping the element placed in the last position of the list
 
-    ownedTokens[_from].length--;
-    ownedTokensIndex[_tokenId] = 0;
+    ownerListofCars[_from].length--;
+    ownedTokensIndex[_CarId] = 0;
     ownedTokensIndex[lastToken] = tokenIndex;
-    totalTokens = totalTokens.sub(1);
+    totalCarPool.length = totalCarPool.length.sub(1);
   }
 
   function _isContract(address addr) internal view returns (bool) {

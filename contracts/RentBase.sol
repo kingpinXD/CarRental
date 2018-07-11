@@ -1,7 +1,9 @@
 pragma solidity ^0.4.17;
 
 import "./RentalAccessControl.sol";
-
+/**
+*@author Tanmay Bhattacharya
+ */
 contract RentBase is RentalAccessControl{
     
     event rentaggrementCreated(address indexed owner,address indexed tenanat,uint carId,uint rentId);
@@ -12,6 +14,7 @@ contract RentBase is RentalAccessControl{
         uint expirationTime;
         bool approvedbyowner;
         address affiliate;
+        address tenant;
     }
 
     rentAggrement[] allRentAggrements;

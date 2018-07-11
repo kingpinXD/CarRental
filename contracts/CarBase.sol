@@ -2,8 +2,10 @@ pragma solidity ^0.4.17;
 
 import "./RentBase.sol";
 
-
-contract Car is RentBase {
+/**
+*@author Tanmay Bhattacharya
+ */
+contract CarBase is RentBase {
     event CarCreated(
         uint256 id,
         string carMake,
@@ -23,22 +25,19 @@ contract Car is RentBase {
         bool isAvailable;
     }
     
-    mapping (uint => address) carToOwner;
+    mapping (uint => address) carIdToOwner;
     mapping (address => uint) ownerCarCount;
+    mapping (address => uint256[]) ownerListofCars;
+    
     Car[] totalCarPool;
    
-    function _addCarToPool (string _carMake,uint _carRent) internal {        
-        uint id = totalCarPool.push(Car(_carMake,_carRent,true)) - 1;
-        carToOwner[id] = msg.sender;
-        ownerCarCount[msg.sender]++;
-        CarCreated(id,_carMake,_carRent,true);
-    }
+
     function _CarDoesNotExist(uint CarId) internal view returns(bool) {
-        return (carToOwner[CarId] == 0x0000000000000000000000000000000000000000);
+        return (carIdToOwner[CarId] == 0x0000000000000000000000000000000000000000);
     }
     
     function _CarExists(uint CarId) internal view returns(bool) {
-        return (carToOwner[CarId] != 0x0000000000000000000000000000000000000000);
+        return (carIdToOwner[CarId] != 0x0000000000000000000000000000000000000000);
     }
     function _isAvailable(uint CarId) internal view returns(bool) {
         return totalCarPool[CarId].isAvailable ;
@@ -51,22 +50,9 @@ contract Car is RentBase {
         totalCarPool[_CarId].carRent = _rent;
     }
 
-    function _rentCar(uint _CarId,uint _numMonths,address tenantAddress)internal {
-        require(_CarExists(_CarId));
-        require(_isAvailable(_CarId));//need to include duration in this
-        totalCarPool[_CarId].isAvailable=false;
-        carToOwner[_CarId]=tenantAddress;    
-    }
+
     
-    /**
-   * @notice createCar creates a new Car in the system
-   * @param _carMake - the make of the car (cannot be changed)
-   * @param _carRent - the starting price (price can be changed)
-   * 
-   */
-    function CreateCar (string _carMake,uint _carRent) external onlyCEOOrCOO {  
-     _addCarToPool(_carMake,_carRent);
-    }
+   
     /**
     * @notice setPrice - sets the price of a Car
     * @param _CarId - the Car id
